@@ -1,53 +1,57 @@
-import path from "path";
+import { MongoClient, ObjectId } from "mongodb";
 import MeetupDetail from "../../components/meetups/MeetupDetail";
-const MeetupDetailPage = () => {
+const MeetupDetailPage = (props) => {
   return (
     <MeetupDetail
-      title={"First Meetup"}
-      image={
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Qutub_Minar_932.jpg/240px-Qutub_Minar_932.jpg"
-      }
-      address={"First Meetup address"}
-      description={"this is first meetups"}
+      title={props.meetupDetail.title}
+      image={props.meetupDetail.image}
+      address={props.meetupDetail.address}
+      description={props.meetupDetail.description}
     />
   );
 };
 
 export async function getStaticPaths() {
+  const client = await MongoClient.connect(
+    "mongodb+srv://admin:admin@cluster0.4ooptbe.mongodb.net/supercoders?retryWrites=true&w=majority"
+  );
+  const db = await client.db();
+  const meetupsCollection = db.collection("meetups");
+  const result = await meetupsCollection.find({}, { _id: 1 }).toArray();
+  const meetupIds = result.map((meetup) => {
+    return {
+      params: {
+        meetupId: meetup._id.toString(),
+      },
+    };
+  });
+  client.close();
   return {
     fallback: true,
-    paths: [
-      {
-        params: {
-          meetupId: "M1",
-        },
-      },
-      {
-        params: {
-          meetupId: "M2",
-        },
-      },
-      {
-        params: {
-          meetupId: "M2",
-        },
-      },
-    ],
+    paths: meetupIds,
   };
 }
 export async function getStaticProps(context) {
   const meetupId = context.params.meetupId;
   console.log(meetupId);
+  const client = await MongoClient.connect(
+    "mongodb+srv://admin:admin@cluster0.4ooptbe.mongodb.net/supercoders?retryWrites=true&w=majority"
+  );
+  const db = await client.db();
+  const meetupsCollection = db.collection("meetups");
+  const result = await meetupsCollection.findOne({
+    _id: new ObjectId(meetupId),
+  });
+  console.log(result,"result")
   //fetch actually
   return {
     props: {
       meetupDetail: {
-        id: "m1",
-        title: "First Meetup",
-        image:
-          "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Qutub_Minar_932.jpg/240px-Qutub_Minar_932.jpg",
-        address: "First Meetup address",
-        description: "this is first meetups",
+        id:result._id.toString(),
+        title:result.title,
+        image:result.image,
+        address:result.address,
+        description:result.description
       },
     },
   };
